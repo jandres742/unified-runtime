@@ -168,13 +168,11 @@ UR_APIEXPORT ur_result_t UR_APICALL urEnqueueEventsWaitWithBarrier(
         // TODO: this and other special handling of in-order queues to be
         // updated when/if Level Zero adds native support for in-order queues.
         //
-        if (Queue->isInOrderQueue() && InOrderBarrierBySignal) {
-          if (EventWaitList.Length) {
+        if (Queue->isInOrderQueue() && InOrderBarrierBySignal && EventWaitList.Length) {
             ZE2UR_CALL(zeCommandListAppendWaitOnEvents,
                        (CmdList->first, EventWaitList.Length,
                         EventWaitList.ZeEventList));
-          }
-          ZE2UR_CALL(zeCommandListAppendSignalEvent,
+            ZE2UR_CALL(zeCommandListAppendSignalEvent,
                      (CmdList->first, Event->ZeEvent));
         } else {
           ZE2UR_CALL(zeCommandListAppendBarrier,
