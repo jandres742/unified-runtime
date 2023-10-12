@@ -184,6 +184,7 @@ UR_APIEXPORT ur_result_t UR_APICALL urQueueGetInfo(
       if (!Queue->LastCommandEvent->IsDiscarded) {
         ze_result_t ZeResult = ZE_CALL_NOCHECK(
             zeEventQueryStatus, (Queue->LastCommandEvent->ZeEvent));
+        fprintf(stderr, "JAIME %s %d Queue->LastCommandEvent->ZeEvent %lx ZeResult %d\n", __FILE__, __LINE__, (unsigned long int)Queue->LastCommandEvent->ZeEvent, ZeResult);
         if (ZeResult == ZE_RESULT_NOT_READY) {
           return ReturnValue(false);
         } else if (ZeResult != ZE_RESULT_SUCCESS) {
@@ -223,6 +224,7 @@ UR_APIEXPORT ur_result_t UR_APICALL urQueueGetInfo(
             for (auto It = EventList.crbegin(); It != EventList.crend(); It++) {
               ze_result_t ZeResult =
                   ZE_CALL_NOCHECK(zeEventQueryStatus, ((*It)->ZeEvent));
+              fprintf(stderr, "JAIME %s %d (*It)->ZeEvent) %lx ZeResult %d\n", __FILE__, __LINE__, (unsigned long int)(*It)->ZeEvent, ZeResult);
               if (ZeResult == ZE_RESULT_NOT_READY) {
                 return ReturnValue(false);
               } else if (ZeResult != ZE_RESULT_SUCCESS) {
@@ -1659,6 +1661,7 @@ ur_result_t ur_queue_handle_t_::resetCommandList(
           Event->Completed
               ? ZE_RESULT_SUCCESS
               : ZE_CALL_NOCHECK(zeEventQueryStatus, (Event->ZeEvent));
+      fprintf(stderr, "JAIME %s %d Event->ZeEvent %lx ZeResult %d\n", __FILE__, __LINE__, (unsigned long int)Event->ZeEvent, ZeResult);
       return ZeResult == ZE_RESULT_SUCCESS;
     };
     // Handle in-order specially as we can just in few checks (with binary

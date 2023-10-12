@@ -168,11 +168,14 @@ UR_APIEXPORT ur_result_t UR_APICALL urEnqueueEventsWaitWithBarrier(
         // TODO: this and other special handling of in-order queues to be
         // updated when/if Level Zero adds native support for in-order queues.
         //
+        fprintf(stderr, "JAIME %s %d EventWaitList.Length %d\n", __FILE__, __LINE__, EventWaitList.Length);
+        fprintf(stderr, "JAIME %s %d Queue->LastCommandEvent %lx\n",
+          __FILE__, __LINE__, (unsigned long int)Queue->LastCommandEvent);
         if (Queue->isInOrderQueue() && InOrderBarrierBySignal) {
           if (EventWaitList.Length) {
-            ZE2UR_CALL(zeCommandListAppendWaitOnEvents,
-                       (CmdList->first, EventWaitList.Length,
-                        EventWaitList.ZeEventList));
+          ZE2UR_CALL(zeCommandListAppendWaitOnEvents,
+                     (CmdList->first, EventWaitList.Length,
+                      EventWaitList.ZeEventList));
           }
           ZE2UR_CALL(zeCommandListAppendSignalEvent,
                      (CmdList->first, Event->ZeEvent));
@@ -181,6 +184,7 @@ UR_APIEXPORT ur_result_t UR_APICALL urEnqueueEventsWaitWithBarrier(
                      (CmdList->first, Event->ZeEvent, EventWaitList.Length,
                       EventWaitList.ZeEventList));
         }
+    
         return UR_RESULT_SUCCESS;
       };
 
@@ -189,7 +193,9 @@ UR_APIEXPORT ur_result_t UR_APICALL urEnqueueEventsWaitWithBarrier(
   // a "barrier" event to be created. Or if we need to wait for events in
   // potentially different queues.
   //
+  fprintf(stderr, "JAIME %s %d\n", __FILE__, __LINE__);
   if (Queue->isInOrderQueue() && NumEventsInWaitList == 0 && !OutEvent) {
+    fprintf(stderr, "JAIME %s %d\n", __FILE__, __LINE__);
     return UR_RESULT_SUCCESS;
   }
 
@@ -215,6 +221,7 @@ UR_APIEXPORT ur_result_t UR_APICALL urEnqueueEventsWaitWithBarrier(
       Queue->LastCommandEvent && !Queue->LastCommandEvent->IsDiscarded) {
     UR_CALL(urEventRetain(Queue->LastCommandEvent));
     *Event = Queue->LastCommandEvent;
+    fprintf(stderr, "JAIME %s %d\n", __FILE__, __LINE__);
     return UR_RESULT_SUCCESS;
   }
 
@@ -253,8 +260,11 @@ UR_APIEXPORT ur_result_t UR_APICALL urEnqueueEventsWaitWithBarrier(
       auto UREvent = reinterpret_cast<ur_event_handle_t>(*Event);
       Queue->ActiveBarriers.add(UREvent);
     }
+    fprintf(stderr, "JAIME %s %d\n", __FILE__, __LINE__);
     return UR_RESULT_SUCCESS;
   }
+
+  fprintf(stderr, "JAIME %s %d\n", __FILE__, __LINE__);
 
   // Since there are no events to explicitly create a barrier for, we are
   // inserting a queue-wide barrier.
@@ -418,6 +428,7 @@ UR_APIEXPORT ur_result_t UR_APICALL urEventGetInfo(
       ze_result_t ZeResult;
       ZeResult =
           ZE_CALL_NOCHECK(zeEventQueryStatus, (HostVisibleEvent->ZeEvent));
+      fprintf(stderr, "JAIME %s %d HostVisibleEvent->ZeEvent %lx ZeResult %d\n", __FILE__, __LINE__, (unsigned long int)HostVisibleEvent->ZeEvent, ZeResult);
       if (ZeResult == ZE_RESULT_SUCCESS) {
         Result = UR_EVENT_STATUS_COMPLETE;
       }
@@ -819,7 +830,10 @@ ze_result_t zeHostSynchronizeImpl(Func Api, T Handle) {
 //
 template <typename T> ze_result_t zeHostSynchronize(T Handle);
 template <> ze_result_t zeHostSynchronize(ze_event_handle_t Handle) {
-  return zeHostSynchronizeImpl(zeEventHostSynchronize, Handle);
+  
+  auto Result = zeHostSynchronizeImpl(zeEventHostSynchronize, Handle);
+  fprintf(stderr, "JAIME %s %d zeEventHostSynchronize %lx Result %d\n", __FILE__, __LINE__, (unsigned long int)Handle, Result);
+  return Result;
 }
 template <> ze_result_t zeHostSynchronize(ze_command_queue_handle_t Handle) {
   return zeHostSynchronizeImpl(zeCommandQueueSynchronize, Handle);
@@ -1121,6 +1135,7 @@ ur_result_t _ur_ze_event_list_t::createAndRetainUrZeEventList(
           if (FilterEventWaitList && HostVisibleEvent) {
             auto Res = ZE_CALL_NOCHECK(zeEventQueryStatus,
                                        (HostVisibleEvent->ZeEvent));
+            fprintf(stderr, "JAIME %s %d HostVisibleEvent->ZeEvent %lx Res %d\n", __FILE__, __LINE__, (unsigned long int)HostVisibleEvent->ZeEvent, Res);
             if (Res == ZE_RESULT_SUCCESS) {
               // Event has already completed, don't put it into the list
               continue;

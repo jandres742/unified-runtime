@@ -211,6 +211,21 @@ UR_APIEXPORT ur_result_t UR_APICALL urEnqueueKernelLaunch(
   if (IndirectAccessTrackingEnabled)
     Queue->KernelsToBeSubmitted.push_back(Kernel);
 
+  if ((*Event)->WaitList.Length == 1)
+  {
+    ze_kernel_timestamp_result_t tsResult;
+    ZE2UR_CALL(zeEventQueryKernelTimestamp, ((*Event)->WaitList.ZeEventList[0], &tsResult));
+    fprintf(stderr, "%s %d event 0x%lx tsResult.context.kernelStart %ld tsResult.context.kernelEnd %ld tsResult.global.kernelStart %ld tsResult.global.kernelEnd %ld\n",
+    __FILE__, __LINE__,
+    (unsigned long int)(*Event)->WaitList.ZeEventList[0],
+    tsResult.context.kernelStart,
+    tsResult.context.kernelEnd,
+    tsResult.global.kernelStart,
+    tsResult.global.kernelEnd
+    );
+  }
+
+
   if (Queue->UsingImmCmdLists && IndirectAccessTrackingEnabled) {
     // If using immediate commandlists then gathering of indirect
     // references and appending to the queue (which means submission)
@@ -239,6 +254,9 @@ UR_APIEXPORT ur_result_t UR_APICALL urEnqueueKernelLaunch(
                (CommandList->first, Kernel->ZeKernel, &ZeThreadGroupDimensions,
                 ZeEvent, (*Event)->WaitList.Length,
                 (*Event)->WaitList.ZeEventList));
+
+    fprintf(stderr, "JAIME %s %d ZeEvent %lx\n", __FILE__, __LINE__, (unsigned long int)ZeEvent);
+
   }
 
   urPrint("calling zeCommandListAppendLaunchKernel() with"
