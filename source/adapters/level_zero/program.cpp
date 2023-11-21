@@ -161,6 +161,9 @@ UR_APIEXPORT ur_result_t UR_APICALL urProgramBuildExp(
     ZeBuildOptions += pOptions;
   }
 
+  ZeBuildOptions += " -library-compilation ";
+  ZeBuildOptions += " -ze-take-global-address ";
+
   if (phDevices[0]->useLargeAllocations()) {
     ZeBuildOptions += " -ze-opt-greater-than-4GB-buffer-required";
   }
