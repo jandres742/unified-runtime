@@ -179,8 +179,10 @@ static ur_result_t USMDeviceAllocImpl(void **ResultPtr,
   ZeDesc.ordinal = 0;
 
   ZeStruct<ze_relaxed_allocation_limits_exp_desc_t> RelaxedDesc;
-  if (Size > Device->ZeDeviceProperties->maxMemAllocSize) {
-    // Tell Level-Zero to accept Size > maxMemAllocSize
+  if (Device->useLargeAllocations() &&
+      (Size > Device->ZeDeviceProperties->maxMemAllocSize)) {
+    // Tell Level-Zero to accept Size > maxMemAllocSize if
+    // large allocations are used.
     RelaxedDesc.flags = ZE_RELAXED_ALLOCATION_LIMITS_EXP_FLAG_MAX_SIZE;
     ZeDesc.pNext = &RelaxedDesc;
   }

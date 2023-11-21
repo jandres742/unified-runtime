@@ -141,6 +141,17 @@ struct ur_device_handle_t_ : _ur_object {
   // Returns whether immediate command lists are used on this device.
   ImmCmdlistMode ImmCommandListUsed{};
 
+  // Returns whether large allocations are being used or not.
+  // On some Intel GPUs, this influences how kernels are compiled.
+  // If large allocations (>4GB) are requested, then kernels are
+  // compiled with stateless access.
+  // If small allocations (<4GB) are requested, then kernels are
+  // compiled with stateful access, with potential performance
+  // improvements.
+  // Some GPUs support only one mode, such us Intel(R) Data Center GPU Max,
+  // which supports only stateless.
+  bool useLargeAllocations();
+
   bool isSubDevice() { return RootDevice != nullptr; }
 
   // Is this a Data Center GPU Max series (aka PVC)?

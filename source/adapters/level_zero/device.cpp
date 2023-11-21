@@ -88,6 +88,24 @@ UR_APIEXPORT ur_result_t UR_APICALL urDeviceGet(
   return UR_RESULT_SUCCESS;
 }
 
+inline uint64_t getGlobalMemSize(ur_device_handle_t Device) {
+  uint64_t GlobalMemSize = 0;
+  // Support to read physicalSize depends on kernel,
+  // so fallback into reading totalSize if physicalSize
+  // is not available.
+  for (const auto &ZeDeviceMemoryExtProperty :
+       Device->ZeDeviceMemoryProperties->second) {
+    GlobalMemSize += ZeDeviceMemoryExtProperty.physicalSize;
+  }
+  if (GlobalMemSize == 0) {
+    for (const auto &ZeDeviceMemoryProperty :
+         Device->ZeDeviceMemoryProperties->first) {
+      GlobalMemSize += ZeDeviceMemoryProperty.totalSize;
+    }
+  }
+  return GlobalMemSize;
+}
+
 UR_APIEXPORT ur_result_t UR_APICALL urDeviceGetInfo(
     ur_device_handle_t Device,  ///< [in] handle of the device instance
     ur_device_info_t ParamName, ///< [in] type of the info to retrieve
@@ -249,23 +267,15 @@ UR_APIEXPORT ur_result_t UR_APICALL urDeviceGetInfo(
     return ReturnValue(uint32_t{64});
   }
   case UR_DEVICE_INFO_MAX_MEM_ALLOC_SIZE:
-    return ReturnValue(uint64_t{Device->ZeDeviceProperties->maxMemAllocSize});
+    // if using large allocations, then return total size in the device.
+    // if not, then return L0's maxMemAllocSize.
+    if (Device->useLargeAllocations()) {
+      return ReturnValue(uint64_t{getGlobalMemSize(Device)});
+    } else {
+      return ReturnValue(uint64_t{Device->ZeDeviceProperties->maxMemAllocSize});
+    }
   case UR_DEVICE_INFO_GLOBAL_MEM_SIZE: {
-    uint64_t GlobalMemSize = 0;
-    // Support to read physicalSize depends on kernel,
-    // so fallback into reading totalSize if physicalSize
-    // is not available.
-    for (const auto &ZeDeviceMemoryExtProperty :
-         Device->ZeDeviceMemoryProperties->second) {
-      GlobalMemSize += ZeDeviceMemoryExtProperty.physicalSize;
-    }
-    if (GlobalMemSize == 0) {
-      for (const auto &ZeDeviceMemoryProperty :
-           Device->ZeDeviceMemoryProperties->first) {
-        GlobalMemSize += ZeDeviceMemoryProperty.totalSize;
-      }
-    }
-    return ReturnValue(uint64_t{GlobalMemSize});
+    return ReturnValue(uint64_t{getGlobalMemSize(Device)});
   }
   case UR_DEVICE_INFO_LOCAL_MEM_SIZE:
     return ReturnValue(
@@ -898,6 +908,17 @@ ur_device_handle_t_::useImmediateCommandLists() {
   default:
     return NotUsed;
   }
+}
+
+bool ur_device_handle_t_::useLargeAllocations() {
+  static const bool UseLargeAllocations = [this] {
+    const char *UrRet = std::getenv("UR_L0_ALLOW_LARGE_ALLOCATIONS");
+    if (!UrRet)
+      return (this->isPVC() ? true : false);
+    return std::atoi(UrRet) != 0;
+  }();
+
+  return UseLargeAllocations;
 }
 
 ur_result_t ur_device_handle_t_::initialize(int SubSubDeviceOrdinal,
